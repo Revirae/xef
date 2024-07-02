@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 use super::validation::amount_validation;
 use crate::{
+    mass_format_logic1,
     model::{inventory::Inventory, item::Item, portion::Portion},
     view::text_to_value,
     AppState as State,
@@ -36,13 +37,11 @@ pub fn portion_to_view(
     inventory: &Inventory,
 ) -> Result<ViewPortion>
 {
-    // let source = inventory.get_item(&portion.source_id)?;
     let component = inventory.get_item(&portion.component_id)?;
-
     let ingredient_name = component.borrow().name.to_string();
-    let amount = portion.amount.to_string();
+    let amount = mass_format_logic1(portion.amount);
     let price = inventory.get_price(portion.source_id)? * portion.amount;
-    let price = price.to_string();
+    let price = format!("R$ {:.2}", price);
 
     let view_portion = ViewPortion {
         ingredient_name,
@@ -127,10 +126,8 @@ pub fn portion_list(id: Uuid) -> impl IntoView
     let list = create_rw_signal(im::Vector::<ViewPortion>::new());
 
     create_effect(move |_| {
-        // dbg!(id.get());
         let inventory = &mut state.get_untracked().model;
         if let Ok(portions) = inventory.get_portions(id.get()) {
-            // dbg!(portions.clone());
             list.set(
                 portions
                     .into_iter()

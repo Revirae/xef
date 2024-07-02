@@ -13,10 +13,7 @@ use floem::{
     },
     IntoView,
 };
-use uom::{
-    fmt::DisplayStyle,
-    si::{f64::Mass, mass::kilogram},
-};
+use uom::si::{f64::Mass, mass::kilogram};
 use uuid::Uuid;
 
 use super::field_border_validation;
@@ -48,10 +45,7 @@ impl From<Item> for ViewItem
         Self {
             id: item.id,
             name: item.name.to_string(),
-            amount: mass_format_logic1(
-                item.amount.value,
-                DisplayStyle::Description,
-            ),
+            amount: mass_format_logic1(item.amount.value),
             price: format!("R$ {}", item.price),
         }
     }
@@ -69,16 +63,9 @@ pub fn item_form() -> impl IntoView
     let amount_text = create_rw_signal(String::new());
     let price_text = create_rw_signal(String::new());
     //--- triggers
-    // let commit = create_trigger();
     let clear = create_trigger();
     let delete = create_trigger();
 
-    // create_effect(move |_| {
-    //     commit.track();
-    //     state.update(|state| {
-    //         state.mode = AppMode::default();
-    //     })
-    // });
     create_effect(move |_| {
         clear.track();
         name_text.set("".into());
@@ -103,10 +90,7 @@ pub fn item_form() -> impl IntoView
                 price.set(Some(item_price));
 
                 name_text.set(item_name);
-                amount_text.set(mass_format_logic1(
-                    item_amount.value,
-                    DisplayStyle::Abbreviation,
-                ));
+                amount_text.set(mass_format_logic1(item_amount.value));
                 price_text.set(item_price.to_string());
             }
         }
@@ -265,19 +249,21 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
                 label(move || item.name.clone())
                     .style(|s| s.min_width(90.0)),
                 label(move || {
-                    state
+                    let amount = state
                         .get_untracked()
                         .model
                         .get_amount(item.id)
-                        .unwrap_or(-1.0)
+                        .unwrap_or(-1.0);
+                    mass_format_logic1(amount)
                 })
                 .style(|s| s.min_width(120.0)),
                 label(move || {
-                    state
+                    let price = state
                         .get_untracked()
                         .model
                         .get_price(item.id)
-                        .unwrap_or(-1.0)
+                        .unwrap_or(-1.0);
+                    format!("R$ {:.2}", price)
                 })
                 .style(|s| s.min_width(60.0)),
             ))
@@ -292,18 +278,18 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
         if let Some(view_item) = list.get().get(index) {
             // dbg!(view_item);
             let id = view_item.id;
-            if let Ok(component_ref) = state.get().model.get_item(&id) {
-                let component = component_ref.borrow();
+            if let Ok(item_ref) = state.get().model.get_item(&id) {
+                let item = item_ref.borrow();
                 match state.get_untracked().mode {
                     InsertMode => {
                         state.update(|state| {
-                            state.mode = EditMode(component.id);
+                            state.mode = EditMode(item.id);
                         });
                     }
                     EditMode(src_id) => state.update(|state| {
                         state.mode = PortionMode(src_id, id);
                     }),
-                    _ => {
+                    PortionMode(_, _) => {
                         unreachable!(
                             "item list should not be visible in \
                              `PortionMode`"
@@ -321,7 +307,6 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
                     if let Some(index) = maybe_index {
                         selected.set(None);
                         on_select(index);
-                        // println!("hm...");
                     }
                 }),
         )

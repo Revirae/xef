@@ -34,8 +34,7 @@ pub struct AppState
 
 impl AppState
 {
-    pub fn set_data(&mut self, data: AppData)
-    -> Result<()>
+    pub fn set_data(&mut self, data: AppData) -> Result<()>
     {
         self.model = data.try_into()?;
         Ok(())
@@ -43,11 +42,7 @@ impl AppState
 }
 
 //out
-pub fn mass_format<U>(
-    unit: U,
-    value: f64,
-    style: DisplayStyle,
-) -> String
+pub fn mass_format<U>(unit: U, value: f64, style: DisplayStyle) -> String
 where
     U: mass::Unit + uom::Conversion<f64, T = f64>,
 {
@@ -55,15 +50,21 @@ where
         .into_format_args(unit, style)
         .to_string()
 }
-pub fn mass_format_logic1(
-    value: f64,
-    style: DisplayStyle,
-) -> String
+pub fn mass_format_logic1(value: f64) -> String
 {
+    let mass = Mass::new::<kilogram>(value);
+    let parse = |v| {
+        format!("{:.2}", v)
+            .trim_end_matches('0')
+            .trim_end_matches('.')
+            .to_string()
+    };
     if value > 0.999 {
-        mass_format(kilogram, value, style)
+        let value: f64 = parse(mass.value).parse().unwrap_or(-1.1);
+        format!("{} kg", value)
     } else {
-        mass_format(gram, value, style)
+        let value: f64 = parse(mass.get::<gram>()).parse().unwrap_or(-1.1);
+        format!("{} g", value)
     }
 }
 pub fn clip_uuid(id: Uuid, index: usize) -> String
@@ -80,12 +81,8 @@ pub fn parse_mass_amount(text: String) -> Option<Mass>
     let (value, unit) = text.split_at(index);
     let amount: f64 = value.parse().ok()?;
     match unit.trim_start() {
-        "g" | "grama" | "gramas" => {
-            Some(Mass::new::<gram>(amount))
-        }
-        "kg" | "kilo" | "kilos" => {
-            Some(Mass::new::<kilogram>(amount))
-        }
+        "g" | "grama" | "gramas" => Some(Mass::new::<gram>(amount)),
+        "kg" | "kilo" | "kilos" => Some(Mass::new::<kilogram>(amount)),
         _ => None,
     }
 }
