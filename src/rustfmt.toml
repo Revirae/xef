@@ -1,0 +1,11 @@
+version="Two"
+max_width=75
+brace_style="AlwaysNextLine"
+fn_single_line=true
+force_multiline_block=true
+format_strings=true
+merge_derives=false
+imports_granularity="Crate"
+group_imports="StdExternalCrate"
+edition="2021"
+
