@@ -3,7 +3,8 @@ use std::{cell::RefCell, rc::Rc};
 use anyhow::{anyhow, Result};
 use indexmap::IndexMap;
 use petgraph::{
-    graph::{DiGraph, NodeIndex},
+    algo::is_cyclic_directed,
+    graph::{DiGraph, EdgeIndex, NodeIndex},
     visit::EdgeRef,
 };
 use uuid::Uuid;
@@ -112,13 +113,13 @@ impl Inventory
         Ok(portions)
     }
 
-    fn add_portion(&mut self, portion: Portion) -> Result<()>
+    fn add_portion(&mut self, portion: Portion) -> Result<EdgeIndex>
     {
-        dbg!(portion.clone());
+        // dbg!(portion.clone());
         let source = self.get_node(&portion.source_id)?;
         let component = self.get_node(&portion.component_id)?;
-        self.graph.add_edge(*source, *component, portion);
-        Ok(())
+        let index = self.graph.add_edge(*source, *component, portion);
+        Ok(index)
     }
 
     pub fn create_portion(
@@ -126,13 +127,26 @@ impl Inventory
         from: Uuid,
         to: Uuid,
         amount: f64,
-    ) -> Result<()>
+    ) -> Result<EdgeIndex>
     {
         let source = self.get_node(&to)?;
         let component = self.get_node(&from)?;
         let portion = Portion::of(to, from, amount);
-        self.graph.add_edge(*source, *component, portion);
-        Ok(())
+        let index = self.graph.add_edge(*source, *component, portion);
+        Ok(index)
+    }
+
+    pub fn test_portion(
+        &mut self,
+        from: Uuid,
+        to: Uuid,
+        amount: f64,
+    ) -> Result<bool>
+    {
+        let edge = self.create_portion(from, to, amount)?;
+        let result = is_cyclic_directed(&self.graph);
+        self.graph.remove_edge(edge);
+        Ok(result)
     }
 
     pub fn get_amount_(&self, index: NodeIndex) -> f64

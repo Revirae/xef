@@ -191,7 +191,7 @@ pub fn item_form() -> impl IntoView
                 };
                 if let Some(item) = valid_item() {
                     state.update(|state| {
-                        println!("~ {:?}", state.mode);
+                        // println!("~ {:?}", state.mode);
                         match state.mode {
                             InsertMode => {
                                 state.model.add_item(item.clone())
@@ -205,7 +205,7 @@ pub fn item_form() -> impl IntoView
                             }
                         }
                         .unwrap();
-                        println!("{:?}", state.model.get_portions(item.id))
+                        // println!("{:?}", state.model.get_portions(item.id))
                     });
                 } else {
                     eprintln!("failed to add item");
@@ -230,25 +230,27 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
     let list = create_rw_signal(im::Vector::<ViewItem>::new());
 
     create_effect(move |_| {
-        let c_list: Vec<ViewItem> = state
+        let item_list: Vec<ViewItem> = state
             .get()
             .model
             .list_components()
             .into_iter()
             .filter_map(|item: Item| {
                 if let Some(selected) = selected {
-                    if item.id != selected {
-                        Some(item.into())
-                    } else {
-                        None
-                    }
+                    let circular = state
+                        .get()
+                        .model
+                        .test_portion(item.id, selected, 1.0)
+                        .unwrap_or(true);
+                    // dbg!(circular, selected);
+                    if !circular { Some(item.into()) } else { None }
                 } else {
                     Some(item.into())
                 }
             })
             .collect();
 
-        list.set(c_list.into());
+        list.set(item_list.into());
     });
 
     let virtual_list = virtual_list(
@@ -319,7 +321,7 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
                     if let Some(index) = maybe_index {
                         selected.set(None);
                         on_select(index);
-                        println!("hm...");
+                        // println!("hm...");
                     }
                 }),
         )

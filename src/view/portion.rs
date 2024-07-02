@@ -1,41 +1,26 @@
 // #![allow(unused)]
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use floem::{
     event::EventListener,
-    peniko::Color,
     reactive::{
-        create_effect, create_rw_signal, create_signal, create_trigger,
-        use_context, RwSignal,
+        create_effect, create_rw_signal, create_signal, use_context,
+        RwSignal,
     },
-    style::Style,
     unit::UnitExt,
     views::{
-        button, container, dyn_container, h_stack, label, scroll,
-        text_input, v_stack, virtual_list, Decorators, VirtualDirection,
-        VirtualItemSize,
+        button, container, h_stack, label, scroll, text_input, v_stack,
+        virtual_list, Decorators, VirtualDirection, VirtualItemSize,
     },
     IntoView,
 };
-use uom::{
-    fmt::DisplayStyle,
-    si::{
-        f64::Mass,
-        mass::{self, kilogram},
-    },
-};
+use uom::si::f64::Mass;
 use uuid::Uuid;
 
-use super::{item::ViewItem, validation::amount_validation};
+use super::validation::amount_validation;
 use crate::{
-    clip_uuid, mass_format, mass_format_logic1,
-    model::{
-        inventory::{self, Inventory},
-        item::Item,
-        portion::Portion,
-    },
-    parse_mass_amount,
+    model::{inventory::Inventory, item::Item, portion::Portion},
     view::text_to_value,
-    AppMode, AppState as State,
+    AppState as State,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -51,7 +36,7 @@ pub fn portion_to_view(
     inventory: &Inventory,
 ) -> Result<ViewPortion>
 {
-    let source = inventory.get_item(&portion.source_id)?;
+    // let source = inventory.get_item(&portion.source_id)?;
     let component = inventory.get_item(&portion.component_id)?;
 
     let ingredient_name = component.borrow().name.to_string();
@@ -126,11 +111,10 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
             let amount = amount.get().unwrap().value;
 
             state.update(|state| {
-                let r = state.model.create_portion(
-                    component_id,
-                    source_id,
-                    amount,
-                );
+                state
+                    .model
+                    .create_portion(component_id, source_id, amount)
+                    .unwrap();
             });
         }),
     ))
@@ -144,7 +128,7 @@ pub fn portion_list(id: Uuid) -> impl IntoView
 
     create_effect(move |_| {
         // dbg!(id.get());
-        let mut inventory = &mut state.get_untracked().model;
+        let inventory = &mut state.get_untracked().model;
         if let Ok(portions) = inventory.get_portions(id.get()) {
             // dbg!(portions.clone());
             list.set(
