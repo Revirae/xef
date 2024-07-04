@@ -99,10 +99,13 @@ impl Inventory
         self.nodes
             .values()
             .filter_map(|&node| {
-                if let Ok(item_ref) = self.graph[node].try_borrow() {
-                    Some(item_ref.clone())
-                } else {
-                    None
+                // if let Ok(item_ref) = self.graph[node].try_borrow() {
+                //     Some(item_ref.clone())
+                // } else {
+                //     None
+                // }
+                unsafe {
+                    self.graph[node].try_borrow_unguarded().ok().cloned()
                 }
             })
             .collect()
@@ -154,7 +157,7 @@ impl Inventory
         Ok(result)
     }
 
-    pub fn get_amount_(&self, index: NodeIndex) -> f64
+    fn get_amount_(&self, index: NodeIndex) -> f64
     {
         let mut total_amount = self.graph[index].borrow().amount.value;
         for edge in self.graph.edges(index) {

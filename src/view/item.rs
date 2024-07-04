@@ -187,6 +187,7 @@ pub fn item_form() -> impl IntoView
                 } else {
                     eprintln!("failed to add item");
                 }
+                state.update(|state| state.mode = AppMode::default());
                 clear.notify();
             })
             .style(move |s| match state.get().mode {

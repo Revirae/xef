@@ -69,8 +69,8 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
     create_effect(move |_| {
         let inventory = &state.get_untracked().model;
         if let Some(amount) = amount.get() {
-            if let Ok(node) = inventory.get_node(&src_id.get()) {
-                let src_price = inventory.get_unit_price(*node);
+            if let Ok(item_index) = inventory.get_node(&id.get()) {
+                let src_price = inventory.get_unit_price(*item_index);
                 let price = amount.value * src_price;
                 price_text.set(price.to_string());
             }
