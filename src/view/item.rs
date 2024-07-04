@@ -81,9 +81,9 @@ pub fn item_form() -> impl IntoView
         let inventory = state.model;
         if let AppMode::EditMode(id) = mode {
             if let Ok(item) = inventory.get_item(&id) {
-                let item_name = item.borrow().name.to_string();
-                let item_amount = item.borrow().amount;
-                let item_price = item.borrow().price;
+                let item_name = item.name.to_string();
+                let item_amount = item.amount;
+                let item_price = item.price;
 
                 name.set(Some(item_name.clone()));
                 amount.set(Some(Mass::new::<kilogram>(item_amount.value)));
@@ -100,7 +100,7 @@ pub fn item_form() -> impl IntoView
         if let AppMode::EditMode(id) = state.get_untracked().mode {
             state.update(|state| {
                 let inventory = &mut state.model;
-                if let Err(e) = inventory.remove_component(&id) {
+                if let Err(e) = inventory.remove_item(&id) {
                     eprintln!("{:?}", e);
                 }
                 state.mode = AppMode::default();
@@ -162,7 +162,6 @@ pub fn item_form() -> impl IntoView
                     match state.get().mode {
                         EditMode(id) | PortionMode(id, _) => {
                             item_ = item_.with_id(id);
-                            // commit.notify();
                         }
                         _ => {}
                     }
@@ -174,22 +173,16 @@ pub fn item_form() -> impl IntoView
                         .ok()
                 };
                 if let Some(item) = valid_item() {
-                    state.update(|state| {
-                        // println!("~ {:?}", state.mode);
-                        match state.mode {
-                            InsertMode => {
-                                state.model.add_item(item.clone())
-                            }
-                            EditMode(id) | PortionMode(id, _) => {
-                                let update_result = state
-                                    .model
-                                    .update_item(id, item.clone());
-                                state.mode = AppMode::default();
-                                update_result
-                            }
+                    state.update(|state| match state.mode {
+                        InsertMode => {
+                            state.model.add_item(item.clone()).unwrap();
                         }
-                        .unwrap();
-                        // println!("{:?}", state.model.get_portions(item.id))
+                        EditMode(id) | PortionMode(id, _) => {
+                            state
+                                .model
+                                .update_item(id, |mut i| *i = item.clone())
+                                .unwrap();
+                        }
                     });
                 } else {
                     eprintln!("failed to add item");
@@ -217,7 +210,7 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
         let item_list: Vec<ViewItem> = state
             .get()
             .model
-            .list_components()
+            .list_item()
             .into_iter()
             .filter_map(|item: Item| {
                 if let Some(selected) = selected {
@@ -226,7 +219,6 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
                         .model
                         .test_portion(item.id, selected, 1.0)
                         .unwrap_or(true);
-                    // dbg!(circular, selected);
                     if !circular { Some(item.into()) } else { None }
                 } else {
                     Some(item.into())
@@ -274,12 +266,9 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
     let selected = virtual_list.selection();
     let on_select = move |index: usize| {
         use crate::AppMode::*;
-        // dbg!(index);
         if let Some(view_item) = list.get().get(index) {
-            // dbg!(view_item);
             let id = view_item.id;
-            if let Ok(item_ref) = state.get().model.get_item(&id) {
-                let item = item_ref.borrow();
+            if let Ok(item) = state.get().model.get_item(&id) {
                 match state.get_untracked().mode {
                     InsertMode => {
                         state.update(|state| {

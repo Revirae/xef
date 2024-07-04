@@ -37,8 +37,8 @@ pub fn portion_to_view(
     inventory: &Inventory,
 ) -> Result<ViewPortion>
 {
-    let component = inventory.get_item(&portion.component_id)?;
-    let ingredient_name = component.borrow().name.to_string();
+    let item = inventory.get_item(&portion.component_id)?;
+    let ingredient_name = item.name.to_string();
     let amount = mass_format_logic1(portion.amount);
     let price = inventory.get_price(portion.source_id)? * portion.amount;
     let price = format!("R$ {:.2}", price);
@@ -79,13 +79,11 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
 
     create_effect(move |_| {
         let inventory = state.get_untracked().model;
-        if let Ok(rc) = inventory.get_item(&src_id.get()) {
-            let i = rc.borrow();
-            source.set(Some(i.clone()));
+        if let Ok(i) = inventory.get_item(&src_id.get()) {
+            source.set(Some(i));
         }
-        if let Ok(rc) = inventory.get_item(&id.get()) {
-            let i = rc.borrow();
-            item.set(Some(i.clone()));
+        if let Ok(i) = inventory.get_item(&id.get()) {
+            item.set(Some(i));
         }
     });
     create_effect(move |_| {
@@ -103,7 +101,7 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
         label(move || price_text.get()),
         button(|| "Adicionar").on_click_stop(move |_| {
             let source_id = source.get().unwrap().id;
-            let component_id = item.get().unwrap().id;
+            let item_id = item.get().unwrap().id;
             if amount.get().is_none() {
                 return;
             }
@@ -112,7 +110,7 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
             state.update(|state| {
                 state
                     .model
-                    .create_portion(component_id, source_id, amount)
+                    .create_portion(item_id, source_id, amount)
                     .unwrap();
             });
         }),

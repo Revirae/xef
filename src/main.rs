@@ -23,8 +23,9 @@ fn shutdown(_event: &Event) -> ()
 fn try_init() -> Result<()>
 {
     let mut state = AppState::default();
-    let data = AppData::load(DBFN)?;
-    state.set_data(data)?;
+    if let Ok(data) = AppData::load(DBFN) {
+        state.set_data(data)?;
+    }
 
     let state_handle = create_rw_signal(state);
     provide_context(state_handle);
@@ -34,9 +35,10 @@ fn try_init() -> Result<()>
 fn main() -> Result<()>
 {
     try_init()?;
-    let main_view =
-        app_view().on_event_stop(EventListener::WindowClosed, shutdown);
 
-    floem::launch(|| main_view);
+    floem::launch(|| {
+        app_view().on_event_stop(EventListener::WindowClosed, shutdown)
+    });
+
     Ok(())
 }

@@ -1,4 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+};
 
 use anyhow::{anyhow, Result};
 use indexmap::IndexMap;
@@ -51,37 +54,23 @@ impl Inventory
         portions
     }
 
-    pub fn get_item(&self, id: &Uuid) -> Result<Rc<RefCell<Item>>>
+    pub fn get_item(&self, id: &Uuid) -> Result<Item>
     {
         if let Some(node) = self.nodes.get(id) {
-            let item = self.graph[*node].clone();
-            Ok(item)
+            // Ok(item)
+            Ok(self.graph[*node].borrow().clone())
         } else {
             Err(anyhow!(format!("{} not found", id)))
         }
     }
 
-    pub fn remove_component(&mut self, id: &Uuid) -> Result<()>
+    pub fn remove_item(&mut self, id: &Uuid) -> Result<()>
     {
         let _ = self.nodes.shift_remove(id).ok_or(anyhow!(format!(
             "failed to remove node index for {:?}",
             id
         )))?;
         Ok(())
-    }
-
-    pub fn list_components(&self) -> im::Vector<Item>
-    {
-        self.nodes
-            .values()
-            .filter_map(|&node| {
-                if let Ok(item_ref) = self.graph[node].try_borrow() {
-                    Some(item_ref.clone())
-                } else {
-                    None
-                }
-            })
-            .collect()
     }
 
     pub fn add_item(&mut self, item: Item) -> Result<()>
@@ -93,14 +82,30 @@ impl Inventory
         Ok(())
     }
 
-    pub fn update_item(&mut self, id: Uuid, item: Item) -> Result<()>
+    pub fn update_item(
+        &mut self,
+        id: Uuid,
+        update_fn: impl FnOnce(RefMut<Item>),
+    ) -> Result<()>
     {
-        if let Ok(index) = self.get_node(&id) {
-            let item_ref = self.graph[*index].clone();
-            let mut item_mref = item_ref.borrow_mut();
-            *item_mref = item;
-        }
+        let index = self.get_node(&id)?;
+        let item_mref = self.graph[*index].borrow_mut();
+        update_fn(item_mref);
         Ok(())
+    }
+
+    pub fn list_item(&self) -> im::Vector<Item>
+    {
+        self.nodes
+            .values()
+            .filter_map(|&node| {
+                if let Ok(item_ref) = self.graph[node].try_borrow() {
+                    Some(item_ref.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     pub fn get_portions(&self, id: Uuid) -> Result<im::Vector<Portion>>

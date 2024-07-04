@@ -1,15 +1,9 @@
-#![feature(trait_alias)]
-#![feature(downcast_unchecked)]
-
 use anyhow::Result;
 use database::AppData;
 use model::inventory::Inventory;
-use uom::{
-    fmt::DisplayStyle,
-    si::{
-        f64::Mass,
-        mass::{self, gram, kilogram},
-    },
+use uom::si::{
+    f64::Mass,
+    mass::{gram, kilogram},
 };
 use uuid::Uuid;
 pub mod database;
@@ -42,14 +36,14 @@ impl AppState
 }
 
 //out
-pub fn mass_format<U>(unit: U, value: f64, style: DisplayStyle) -> String
-where
-    U: mass::Unit + uom::Conversion<f64, T = f64>,
-{
-    Mass::new::<kilogram>(value)
-        .into_format_args(unit, style)
-        .to_string()
-}
+// pub fn mass_format<U>(unit: U, value: f64, style: DisplayStyle) -> String
+// where
+//     U: mass::Unit + uom::Conversion<f64, T = f64>,
+// {
+//     Mass::new::<kilogram>(value)
+//         .into_format_args(unit, style)
+//         .to_string()
+// }
 pub fn mass_format_logic1(value: f64) -> String
 {
     let mass = Mass::new::<kilogram>(value);
