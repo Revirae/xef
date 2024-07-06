@@ -1,1 +1,1 @@
-{"items":[{"id":"eb12e28d-bf87-4791-a5b0-e90a07674e30","name":"a","amount":0.001,"price":1.0},{"id":"dd1eceda-ddd2-4541-bd52-c6996148d068","name":"b","amount":3.0,"price":50.0}],"portions":[{"source_id":"eb12e28d-bf87-4791-a5b0-e90a07674e30","component_id":"dd1eceda-ddd2-4541-bd52-c6996148d068","amount":0.005}]}
+{"items":[{"id":"5fcf8154-c491-4d99-a98b-9b1a18258751","name":"a","amount":0.001,"price":1.0},{"id":"ccc0c302-34c7-45b9-9597-2d6e4fded320","name":"b ","amount":0.002,"price":2.0}],"portions":[]}

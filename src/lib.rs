@@ -17,6 +17,7 @@ pub enum AppMode
     InsertMode,
     EditMode(Uuid),
     PortionMode(Uuid, Uuid),
+    EditPortionMode(Uuid, Uuid),
 }
 
 #[derive(Clone, Default)]
@@ -36,14 +37,6 @@ impl AppState
 }
 
 //out
-// pub fn mass_format<U>(unit: U, value: f64, style: DisplayStyle) -> String
-// where
-//     U: mass::Unit + uom::Conversion<f64, T = f64>,
-// {
-//     Mass::new::<kilogram>(value)
-//         .into_format_args(unit, style)
-//         .to_string()
-// }
 pub fn mass_format_logic1(value: f64) -> String
 {
     let mass = Mass::new::<kilogram>(value);

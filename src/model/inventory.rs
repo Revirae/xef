@@ -98,17 +98,31 @@ impl Inventory
     {
         self.nodes
             .values()
-            .filter_map(|&node| {
-                // if let Ok(item_ref) = self.graph[node].try_borrow() {
-                //     Some(item_ref.clone())
-                // } else {
-                //     None
-                // }
-                unsafe {
-                    self.graph[node].try_borrow_unguarded().ok().cloned()
-                }
+            .filter_map(|&node| unsafe {
+                self.graph[node].try_borrow_unguarded().ok().cloned()
             })
             .collect()
+    }
+
+    pub fn get_portion(&mut self, from: Uuid, to: Uuid)
+    -> Result<Portion>
+    {
+        let source = self.get_node(&to)?;
+        let component = self.get_node(&from)?;
+
+        let portion: Portion = self
+            .graph
+            .edges_connecting(*source, *component)
+            .map(|ei| ei.weight())
+            .cloned()
+            .next()
+            .ok_or(anyhow!(
+                "failed to get portion of {:?} in {:?}",
+                from,
+                to
+            ))?;
+
+        Ok(portion)
     }
 
     pub fn get_portions(&self, id: Uuid) -> Result<im::Vector<Portion>>
@@ -144,14 +158,28 @@ impl Inventory
         Ok(index)
     }
 
-    pub fn test_portion(
-        &mut self,
-        from: Uuid,
-        to: Uuid,
-        amount: f64,
-    ) -> Result<bool>
+    pub fn remove_portion(&mut self, from: Uuid, to: Uuid) -> Result<()>
     {
-        let edge = self.create_portion(from, to, amount)?;
+        let source = self.get_node(&to)?;
+        let component = self.get_node(&from)?;
+
+        let edge = self
+            .graph
+            .edges_connecting(*source, *component)
+            .into_iter()
+            .next()
+            .ok_or(anyhow!(format!(
+                "failed to retrieve edge index between {:?} and {:?}",
+                from, to
+            )))?;
+
+        self.graph.remove_edge(edge.id()).unwrap();
+        Ok(())
+    }
+
+    pub fn test_portion(&mut self, from: Uuid, to: Uuid) -> Result<bool>
+    {
+        let edge = self.create_portion(from, to, 1.0)?;
         let result = is_cyclic_directed(&self.graph);
         self.graph.remove_edge(edge);
         Ok(result)

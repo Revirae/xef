@@ -177,10 +177,14 @@ pub fn item_form() -> impl IntoView
                         InsertMode => {
                             state.model.add_item(item.clone()).unwrap();
                         }
-                        EditMode(id) | PortionMode(id, _) => {
+                        EditMode(src_id)
+                        | PortionMode(src_id, _)
+                        | EditPortionMode(src_id, _) => {
                             state
                                 .model
-                                .update_item(id, |mut i| *i = item.clone())
+                                .update_item(src_id, |mut i| {
+                                    *i = item.clone()
+                                })
                                 .unwrap();
                         }
                     });
@@ -202,7 +206,7 @@ pub fn item_form() -> impl IntoView
     .style(move |s| s.flex_row().padding(5.0).margin(5.0)),))
 }
 
-pub fn item_list(selected: Option<Uuid>) -> impl IntoView
+pub fn item_list(maybe_id: Option<Uuid>) -> impl IntoView
 {
     let state: RwSignal<State> = use_context().unwrap();
     let list = create_rw_signal(im::Vector::<ViewItem>::new());
@@ -214,11 +218,11 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
             .list_item()
             .into_iter()
             .filter_map(|item: Item| {
-                if let Some(selected) = selected {
+                if let Some(selected_id) = maybe_id {
                     let circular = state
                         .get()
                         .model
-                        .test_portion(item.id, selected, 1.0)
+                        .test_portion(item.id, selected_id)
                         .unwrap_or(true);
                     if !circular { Some(item.into()) } else { None }
                 } else {
@@ -279,10 +283,10 @@ pub fn item_list(selected: Option<Uuid>) -> impl IntoView
                     EditMode(src_id) => state.update(|state| {
                         state.mode = PortionMode(src_id, id);
                     }),
-                    PortionMode(_, _) => {
+                    PortionMode(_, _) | EditPortionMode(_, _) => {
                         unreachable!(
-                            "item list should not be visible in \
-                             `PortionMode`"
+                            "`Item` list should not be visible in \
+                             `Portion` modes"
                         );
                     }
                 }

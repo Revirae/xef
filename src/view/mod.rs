@@ -71,11 +71,13 @@ fn main_page() -> impl IntoView
             move || state.get().mode,
             |mode| match mode {
                 EditMode(src_id) => portion_list(src_id).into_any(),
-                PortionMode(src_id, id) => h_stack((
-                    portion_form(src_id, id),
-                    portion_list(src_id),
-                ))
-                .into_any(),
+                PortionMode(src_id, id) | EditPortionMode(src_id, id) => {
+                    h_stack((
+                        portion_form(src_id, id),
+                        portion_list(src_id),
+                    ))
+                    .into_any()
+                }
                 _ => label(|| "-").into_any(),
             },
         ),
