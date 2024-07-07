@@ -1,1 +1,1 @@
-{"items":[{"id":"5fcf8154-c491-4d99-a98b-9b1a18258751","name":"a","amount":0.001,"price":1.0},{"id":"ccc0c302-34c7-45b9-9597-2d6e4fded320","name":"b ","amount":0.002,"price":2.0}],"portions":[]}
+{"items":[{"id":"c49b2e5e-ab34-4354-beef-88c55216326a","name":"a","amount":0.001,"price":1.0},{"id":"29f229e7-6978-4383-b32a-5a7173778fce","name":"b","amount":0.002,"price":2.0}],"portions":[{"source_id":"c49b2e5e-ab34-4354-beef-88c55216326a","component_id":"29f229e7-6978-4383-b32a-5a7173778fce","amount":1.0}]}

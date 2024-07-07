@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use anyhow::Result;
 use floem::{
     event::{Event, EventListener},
@@ -11,7 +13,8 @@ static DBFN: &str = "xef.json";
 fn try_persist() -> Result<()>
 {
     let state: RwSignal<AppState> = use_context().unwrap();
-    let data: AppData = state.get().model.into();
+    let model = state.get().model.borrow().deref().clone();
+    let data: AppData = model.into();
     data.save(DBFN)
 }
 

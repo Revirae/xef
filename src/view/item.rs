@@ -78,7 +78,7 @@ pub fn item_form() -> impl IntoView
     create_effect(move |_| {
         let state = state.get();
         let mode = state.mode;
-        let inventory = state.model;
+        let inventory = state.model.borrow();
         if let AppMode::EditMode(id) = mode {
             if let Ok(item) = inventory.get_item(&id) {
                 let item_name = item.name.to_string();
@@ -99,8 +99,8 @@ pub fn item_form() -> impl IntoView
         delete.track();
         if let AppMode::EditMode(id) = state.get_untracked().mode {
             state.update(|state| {
-                let inventory = &mut state.model;
-                if let Err(e) = inventory.remove_item(&id) {
+                let mut model = state.model.borrow_mut();
+                if let Err(e) = model.remove_item(&id) {
                     eprintln!("{:?}", e);
                 }
                 state.mode = AppMode::default();
@@ -160,8 +160,10 @@ pub fn item_form() -> impl IntoView
                     let price = price.get()?;
                     #[allow(clippy::single_match)]
                     match state.get().mode {
-                        EditMode(id) | PortionMode(id, _) => {
-                            item_ = item_.with_id(id);
+                        EditMode(src_id)
+                        | PortionMode(src_id, _)
+                        | EditPortionMode(src_id, _) => {
+                            item_ = item_.with_id(src_id);
                         }
                         _ => {}
                     }
@@ -175,13 +177,14 @@ pub fn item_form() -> impl IntoView
                 if let Some(item) = valid_item() {
                     state.update(|state| match state.mode {
                         InsertMode => {
-                            state.model.add_item(item.clone()).unwrap();
+                            let mut model = state.model.borrow_mut();
+                            model.add_item(item.clone()).unwrap();
                         }
                         EditMode(src_id)
                         | PortionMode(src_id, _)
                         | EditPortionMode(src_id, _) => {
-                            state
-                                .model
+                            let mut model = state.model.borrow_mut();
+                            model
                                 .update_item(src_id, |mut i| {
                                     *i = item.clone()
                                 })
@@ -212,16 +215,17 @@ pub fn item_list(maybe_id: Option<Uuid>) -> impl IntoView
     let list = create_rw_signal(im::Vector::<ViewItem>::new());
 
     create_effect(move |_| {
-        let item_list: Vec<ViewItem> = state
-            .get()
-            .model
+        let s = state.get();
+        let model = s.model.clone();
+        let item_list: Vec<ViewItem> = model
+            .borrow()
             .list_item()
             .into_iter()
             .filter_map(|item: Item| {
                 if let Some(selected_id) = maybe_id {
-                    let circular = state
-                        .get()
-                        .model
+                    let mut model = model.borrow().clone();
+                    let circular = model
+                        // .borrow_mut()
                         .test_portion(item.id, selected_id)
                         .unwrap_or(true);
                     if !circular { Some(item.into()) } else { None }
@@ -246,20 +250,16 @@ pub fn item_list(maybe_id: Option<Uuid>) -> impl IntoView
                 label(move || item.name.clone())
                     .style(|s| s.min_width(90.0)),
                 label(move || {
-                    let amount = state
-                        .get_untracked()
-                        .model
-                        .get_amount(item.id)
-                        .unwrap_or(-1.0);
+                    let s = state.get_untracked();
+                    let model = s.model.borrow();
+                    let amount = model.get_amount(item.id).unwrap_or(-1.0);
                     mass_format_logic1(amount)
                 })
                 .style(|s| s.min_width(120.0)),
                 label(move || {
-                    let price = state
-                        .get_untracked()
-                        .model
-                        .get_price(item.id)
-                        .unwrap_or(-1.0);
+                    let s = state.get_untracked();
+                    let model = s.model.borrow();
+                    let price = model.get_price(item.id).unwrap_or(-1.0);
                     format!("R$ {:.2}", price)
                 })
                 .style(|s| s.min_width(60.0)),
@@ -273,7 +273,9 @@ pub fn item_list(maybe_id: Option<Uuid>) -> impl IntoView
         use crate::AppMode::*;
         if let Some(view_item) = list.get().get(index) {
             let id = view_item.id;
-            if let Ok(item) = state.get().model.get_item(&id) {
+            let s = state.get();
+            let model = s.model.borrow();
+            if let Ok(item) = model.get_item(&id) {
                 match state.get_untracked().mode {
                     InsertMode => {
                         state.update(|state| {

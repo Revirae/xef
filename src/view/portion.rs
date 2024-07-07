@@ -1,10 +1,9 @@
-// #![allow(unused)]
 use anyhow::Result;
 use floem::{
     event::EventListener,
     reactive::{
-        create_effect, create_memo, create_rw_signal, create_signal,
-        create_trigger, use_context, RwSignal,
+        create_effect, create_rw_signal, create_signal, use_context,
+        RwSignal,
     },
     unit::UnitExt,
     views::{
@@ -69,11 +68,10 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
     let ing_name_text = create_rw_signal(String::new());
     let amount_text = create_rw_signal(String::new());
     let price_text = create_rw_signal(String::new());
-    //--- triggers
-    let delete = create_trigger();
 
     create_effect(move |_| {
-        let inventory = &state.get_untracked().model;
+        let state = state.get();
+        let inventory = state.model.borrow();
         if let Some(amount) = amount.get() {
             if let Ok(item_index) = inventory.get_node(&id.get()) {
                 let src_price = inventory.get_unit_price(*item_index);
@@ -84,7 +82,8 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
     });
 
     create_effect(move |_| {
-        let inventory = state.get_untracked().model;
+        let state = state.get();
+        let inventory = state.model.borrow();
         if let Ok(i) = inventory.get_item(&src_id.get()) {
             source.set(Some(i));
         }
@@ -95,23 +94,6 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
     create_effect(move |_| {
         if let Some(item) = item.get() {
             ing_name_text.set(item.name.to_string());
-        }
-    });
-
-    create_effect(move |_| {
-        // delete.track();
-        dbg!("###");
-        let inventory = &mut state.get_untracked().model;
-        if let AppMode::EditPortionMode(src_id, id) =
-            state.get_untracked().mode
-        {
-            dbg!("!!!");
-            state.update(|state| {
-                if let Err(e) = inventory.remove_portion(id, src_id) {
-                    eprintln!("{:?}", e);
-                }
-                state.mode = AppMode::EditMode(src_id);
-            });
         }
     });
 
@@ -127,8 +109,15 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
             move |mode| match mode {
                 AppMode::EditPortionMode(_, _) => button(|| "excluir")
                     .on_click_stop(move |_| {
-                        dbg!("clicked");
-                        delete.notify()
+                        if let AppMode::EditPortionMode(src_id, id) =
+                            state.get_untracked().mode
+                        {
+                            state.update(|state| {
+                                let mut model = state.model.borrow_mut();
+                                model.remove_portion(id, src_id).unwrap();
+                                state.mode = AppMode::EditMode(src_id);
+                            });
+                        }
                     })
                     .into_any(),
                 _ => label(|| "").style(|s| s.height(25.0)).into_any(),
@@ -143,10 +132,8 @@ pub fn portion_form(src_id: Uuid, id: Uuid) -> impl IntoView
             let amount = amount.get().unwrap().value;
 
             state.update(|state| {
-                state
-                    .model
-                    .create_portion(item_id, source_id, amount)
-                    .unwrap();
+                let mut model = state.model.borrow_mut();
+                model.create_portion(item_id, source_id, amount).unwrap();
             });
         }),
     ))
@@ -160,13 +147,14 @@ pub fn portion_list(src_id: Uuid) -> impl IntoView
     let list = create_rw_signal(im::Vector::<ViewPortion>::new());
 
     create_effect(move |_| {
-        let inventory = &mut state.get_untracked().model;
+        let s = state.get();
+        let inventory = s.model.borrow();
         if let Ok(portions) = inventory.get_portions(src_id.get()) {
             list.set(
                 portions
                     .into_iter()
                     .filter_map(|portion: Portion| {
-                        portion_to_view(portion, inventory).ok()
+                        portion_to_view(portion, &inventory).ok()
                     })
                     .collect(),
             );
@@ -194,15 +182,16 @@ pub fn portion_list(src_id: Uuid) -> impl IntoView
             )
             .style(move |s| s.flex_col().width_full().padding_top(5.0))
             .on_select(move |i| {
+                let s = state.get_untracked();
                 if let Some(index) = i {
                     if let Some(view_portion) =
                         list.get_untracked().get(index)
                     {
                         let id = view_portion.component_id;
-                        if let Ok(_portion) = state
-                            .get_untracked()
-                            .model
-                            .get_portion(id, src_id.get())
+                        let model = s.model.borrow();
+
+                        if let Ok(_portion) =
+                            model.get_portion(id, src_id.get())
                         {
                             dbg!(_portion);
                             state.update(|state| {
@@ -211,7 +200,6 @@ pub fn portion_list(src_id: Uuid) -> impl IntoView
                                     id,
                                 )
                             });
-                            // selected.notify();
                         }
                     }
                 }
@@ -220,7 +208,6 @@ pub fn portion_list(src_id: Uuid) -> impl IntoView
         .style(|s| s.width(100.pct()).height(100.pct())),
     )
     .style(|s| {
-        // s.size(100.pct(), 100.pct())
         s.height_full().padding_vert(15.0).flex_col().items_center()
     })
 }

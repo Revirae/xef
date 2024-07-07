@@ -104,8 +104,7 @@ impl Inventory
             .collect()
     }
 
-    pub fn get_portion(&mut self, from: Uuid, to: Uuid)
-    -> Result<Portion>
+    pub fn get_portion(&self, from: Uuid, to: Uuid) -> Result<Portion>
     {
         let source = self.get_node(&to)?;
         let component = self.get_node(&from)?;
@@ -160,6 +159,7 @@ impl Inventory
 
     pub fn remove_portion(&mut self, from: Uuid, to: Uuid) -> Result<()>
     {
+        dbg!(self.graph.edge_count());
         let source = self.get_node(&to)?;
         let component = self.get_node(&from)?;
 
@@ -172,8 +172,10 @@ impl Inventory
                 "failed to retrieve edge index between {:?} and {:?}",
                 from, to
             )))?;
-
-        self.graph.remove_edge(edge.id()).unwrap();
+        // dbg!(edge.id());
+        let _removed_portion = self.graph.remove_edge(edge.id()).unwrap();
+        // dbg!(removed_portion);
+        dbg!(self.graph.edge_count());
         Ok(())
     }
 

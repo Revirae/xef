@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use anyhow::Result;
 use database::AppData;
 use model::inventory::Inventory;
@@ -23,7 +25,7 @@ pub enum AppMode
 #[derive(Clone, Default)]
 pub struct AppState
 {
-    pub model: Inventory,
+    pub model: Rc<RefCell<Inventory>>,
     pub mode: AppMode,
 }
 
@@ -31,7 +33,8 @@ impl AppState
 {
     pub fn set_data(&mut self, data: AppData) -> Result<()>
     {
-        self.model = data.try_into()?;
+        let mut model = self.model.borrow_mut();
+        *model = data.try_into()?;
         Ok(())
     }
 }
